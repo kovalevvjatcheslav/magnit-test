@@ -4,6 +4,8 @@ from wsgiref.validate import validator
 from wsgiref.util import application_uri, request_uri
 from urls import urls
 from views import view_404
+from utils import populate_db
+from settigs import DB_NAME
 
 
 def app(environ, start_response):
@@ -12,5 +14,6 @@ def app(environ, start_response):
 
 
 if __name__ == '__main__':
+    populate_db(DB_NAME)
     with make_server('', 8080, validator(app)) as server:
         server.serve_forever()

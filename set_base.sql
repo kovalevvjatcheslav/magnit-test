@@ -4,12 +4,12 @@ create table if not exists Region(id integer primary key autoincrement, name tex
 
 create table if not exists City(
     id integer primary key autoincrement,
-    name text not null unique,
+    name text not null,
     region_id integer not null,
     foreign key(region_id) references Region(id)
 );
 
-create table if not exists Comments(
+create table if not exists Comment(
     id integer primary key autoincrement,
     name text not null,
     surname text not null,
