@@ -35,8 +35,8 @@ class Region(BaseModel):
     @classmethod
     def get_by_id(cls, id, db_conn):
         with get_cursor(db_conn) as cursor:
-            result = cursor.execute(f'select * from {cls.__name__} where id=?;', (id, )).fetchone()
-            return cls(name=result[1], db_conn=db_conn)
+            result = cursor.execute(f'select name from {cls.__name__} where id=?;', (id, )).fetchone()
+            return cls(name=result[0], db_conn=db_conn)
 
     @classmethod
     def get_all(cls, db_conn):
@@ -67,6 +67,13 @@ class City(BaseModel):
                 (self.name, self.region.id)
             )
         return self
+
+    @classmethod
+    def get_by_id(cls, id, db_conn):
+        with get_cursor(db_conn) as cursor:
+            result = cursor.execute(f'select name, region_id from {cls.__name__} where id=?;', (id, )).fetchone()
+            region = Region.get_by_id(result[1], db_conn)
+            return cls(name=result[0], region=region, db_conn=db_conn)
 
     @classmethod
     def get_by_region_id(cls, region_id, db_conn):

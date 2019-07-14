@@ -16,8 +16,8 @@ function setCities(){
 
 function getCities(regionId){
     let req = new XMLHttpRequest();
-    req.open('POST', '/cities/', false);
-    req.send([JSON.stringify({region_id: regionId})]);
+    req.open('GET', `/cities/?regionId=${regionId}`, false);
+    req.send();
     if (req.status != 200) {
         console.log('error in getCities');
         return;
