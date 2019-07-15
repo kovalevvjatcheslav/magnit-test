@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from views import view_comment, view_static, view_get_cities
+from views import view_add_comment, view_static, view_get_cities, view_comments
 
 
 urls = {
-    'comment/': view_comment,
+    'comment/': view_add_comment,
     'static/base.css': view_static,
     'static/base.js': view_static,
     'cities/': view_get_cities,
+    'view/': view_comments,
 }

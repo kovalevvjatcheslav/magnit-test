@@ -15,8 +15,9 @@ create table if not exists Comment(
     surname text not null,
     patronymic text,
     city_id integer,
-    phone integer,
+    phone text,
     email text,
+    hash text not null unique,
     comment text not null,
     foreign key(city_id) references City(id)
 );

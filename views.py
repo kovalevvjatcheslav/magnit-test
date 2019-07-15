@@ -14,7 +14,7 @@ def view_404(environ, start_response):
         return response.read()
 
 
-def view_comment(environ, start_response):
+def view_add_comment(environ, start_response):
     if environ['REQUEST_METHOD'].lower() == 'post':
         params = parse_qs(environ['wsgi.input'].read(int(environ.get('CONTENT_LENGTH', 0))).decode('utf-8'))
         surname = escape(params.get('surname', [''])[0])
@@ -33,7 +33,7 @@ def view_comment(environ, start_response):
             region_template_str = region_template.read()
         regions = '\n'.join((region_template_str.replace('{id}', str(region.id)).replace('{name}', region.name)
                              for region in Region.get_all(conn)))
-    with open('html/comment.html', 'rt') as response:
+    with open('html/add_comment.html', 'rt') as response:
         start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
         return response.read().replace('{regions}', regions)
 
@@ -54,3 +54,29 @@ def view_get_cities(environ, start_response):
             )
         start_response('200 OK,', [('Content-Type', 'application/json; charset=UTF-8')])
         return cities
+
+
+def view_comments(environ, start_response):
+    if environ['REQUEST_METHOD'].lower() == 'get':
+        with connection(DB_NAME) as conn:
+            with open('html/comment.html') as comment_template:
+                comment_template_str = comment_template.read()
+            comments = '\n'.join(comment_template_str.replace('{surname}', comment.surname).replace('{name}', comment.name)
+                                 .replace('{patronymic}', comment.patronymic if comment.patronymic else '')
+                                 .replace('{region_name}', comment.city.region.name if comment.city else '')
+                                 .replace('{city_name}', comment.city.name if comment.city else '')
+                                 .replace('{phone}', comment.phone if comment.phone else '')
+                                 .replace('{email}', comment.email if comment.email else '')
+                                 .replace('{comment}', comment.comment)
+                                 .replace('{id}', str(comment.id))
+                                 for comment in Comment.get_all(conn))
+        with open('html/view.html', 'rt') as response:
+            start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
+            return response.read().replace('{comments}', comments)
+    elif environ['REQUEST_METHOD'].lower() == 'post':
+        with connection(DB_NAME) as conn:
+            params = json.loads(environ['wsgi.input'].read(int(environ.get('CONTENT_LENGTH', 0))).decode('utf-8'))
+            comment_id = int(params.get('commentId'))
+            Comment.remove_by_id(comment_id, conn)
+            start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
+            return '123'

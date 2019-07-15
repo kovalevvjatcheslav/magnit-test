@@ -26,3 +26,18 @@ function getCities(regionId){
         return JSON.parse(req.responseText);
     }
 }
+
+function removeComment(removeButton){
+    let row = removeButton.parentElement.parentElement;
+    let commentId = row.querySelector('.id').textContent;
+    let req = new XMLHttpRequest();
+    req.open('POST', '/view/', false);
+    req.send(JSON.stringify({commentId: commentId}));
+    if (req.status != 200) {
+        console.log('error in removeComment');
+        return;
+    }
+    else{
+        row.remove();
+    }
+}
