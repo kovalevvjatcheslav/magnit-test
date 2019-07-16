@@ -7,3 +7,11 @@ form {
 table, th, td {
     border: 1px solid black;
 }
+
+div.region {
+    display: flex;
+    flex-direction: column;
+}
+span.region {
+    font-weight: 1000;
+}

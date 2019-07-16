@@ -4,7 +4,7 @@ import json
 from html import escape
 from urllib.parse import parse_qs
 from models import Region, City, Comment
-from context_managers import connection
+from context_managers import connection, get_cursor
 from settigs import DB_NAME
 
 
@@ -29,7 +29,7 @@ def view_add_comment(environ, start_response):
             Comment(name=name, surname=surname, comment=comment_text, db_conn=conn, patronymic=patronymic, city=city,
                     phone=phone, email=email).save()
     with connection(DB_NAME) as conn:
-        with open('html/region.html') as region_template:
+        with open('html/region_option.html', 'rt') as region_template:
             region_template_str = region_template.read()
         regions = '\n'.join((region_template_str.replace('{id}', str(region.id)).replace('{name}', region.name)
                              for region in Region.get_all(conn)))
@@ -39,10 +39,11 @@ def view_add_comment(environ, start_response):
 
 
 def view_static(environ, start_response):
-    uri = request_uri(environ, include_query=False).replace(application_uri(environ), '')
-    start_response('200 OK,', [('Content-Type', f'text/{uri.split(".")[1]}')])
-    with open(uri, 'rt') as response:
-        return response.read()
+    if environ['REQUEST_METHOD'].lower() == 'get':
+        uri = request_uri(environ, include_query=False).replace(application_uri(environ), '')
+        start_response('200 OK,', [('Content-Type', f'text/{uri.split(".")[1]}')])
+        with open(uri, 'rt') as response:
+            return response.read()
 
 
 def view_get_cities(environ, start_response):
@@ -59,7 +60,7 @@ def view_get_cities(environ, start_response):
 def view_comments(environ, start_response):
     if environ['REQUEST_METHOD'].lower() == 'get':
         with connection(DB_NAME) as conn:
-            with open('html/comment.html') as comment_template:
+            with open('html/comment.html', 'rt') as comment_template:
                 comment_template_str = comment_template.read()
             comments = '\n'.join(comment_template_str.replace('{surname}', comment.surname).replace('{name}', comment.name)
                                  .replace('{patronymic}', comment.patronymic if comment.patronymic else '')
@@ -80,3 +81,37 @@ def view_comments(environ, start_response):
             Comment.remove_by_id(comment_id, conn)
             start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
             return '123'
+
+
+def view_stat(environ, start_response):
+    if environ['REQUEST_METHOD'].lower() == 'get':
+        with connection(DB_NAME) as conn:
+            with open('html/region_comment.html', 'rt') as stat_rows_template:
+                stat_rows_template_str = stat_rows_template.read()
+            with get_cursor(conn) as cur:
+                regions_ids = cur.execute('''select region_id from City 
+                                             where id in (select city_id from Comment 
+                                                          group by city_id having count(*)>5);''').fetchall()
+            regions_ids = set(region_id[0] for region_id in regions_ids)
+            comments_count = {region_id: len(tuple(Comment.get_by_region_id(region_id, conn))) for region_id in regions_ids}
+            stat_rows = '\n'.join(stat_rows_template_str.replace('{region_id}', str(region_id))
+                                  .replace('{name}', Region.get_by_id(region_id, conn).name)
+                                  .replace('{comments_count}', str(comments_count[region_id]))
+                                  for region_id in regions_ids)
+            with open('html/stat.html', 'rt') as response:
+                start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
+                return response.read().replace('{rows}', stat_rows)
+
+
+def view_region(environ, start_response):
+    if environ['REQUEST_METHOD'].lower() == 'get':
+        region_id = int(parse_qs(environ['QUERY_STRING']).get('regionId')[0])
+        with connection(DB_NAME) as db_conn:
+            region = Region.get_by_id(region_id, db_conn)
+            cities = City.get_by_region_id(region_id, db_conn)
+            with open('html/city.html', 'rt') as city_rows_template:
+                city_rows_template_str = city_rows_template.read()
+            city_rows = '\n'.join(city_rows_template_str.replace('{city_name}', city.name) for city in cities)
+        with open('html/region_view.html', 'rt') as response:
+            start_response('200 OK,', [('Content-Type', 'text/html; charset=UTF-8')])
+            return response.read().replace('{region_name}', region.name).replace('{city_rows}', city_rows)
